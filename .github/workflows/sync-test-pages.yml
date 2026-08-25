@@ -1,0 +1,48 @@
+name: Sync PUTRAJAYA TEST Pages
+
+on:
+  push:
+    branches: [putrajaya-test]
+    paths:
+      - 'PUTRAJAYA_2_ONLINE.html'
+      - '.github/workflows/sync-test-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TEST branch
+        uses: actions/checkout@v4
+        with:
+          ref: putrajaya-test
+
+      - name: Copy application into docs
+        run: |
+          mkdir -p docs
+          cp PUTRAJAYA_2_ONLINE.html docs/PUTRAJAYA_TEST.html
+          cat > docs/index.html <<'EOF'
+          <!doctype html>
+          <html lang="id">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <meta name="theme-color" content="#0d2a52">
+            <title>PUTRAJAYA TEST</title>
+          </head>
+          <body style="margin:0">
+            <script>location.replace('./PUTRAJAYA_TEST.html');</script>
+          </body>
+          </html>
+          EOF
+
+      - name: Commit copied TEST web app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/index.html docs/PUTRAJAYA_TEST.html
+          git diff --cached --quiet || git commit -m "Sync PUTRAJAYA TEST web app into docs"
+          git push origin putrajaya-test
