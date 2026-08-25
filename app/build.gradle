@@ -4,18 +4,18 @@ android {
     namespace 'com.putrajaya.app'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.putrajaya.app'
+        applicationId 'com.putrajaya.app.test'
         minSdk 23
         targetSdk 35
-        versionCode 2
-        versionName '2.0.1'
+        versionCode 100
+        versionName 'TEST-1.0'
     }
     signingConfigs {
         release {
-            storeFile file(System.getenv('PUTRAJAYA_KEYSTORE') ?: 'putrajaya-release.jks')
-            storePassword System.getenv('PUTRAJAYA_STORE_PASSWORD') ?: 'PutraJayaRelease2026!'
-            keyAlias System.getenv('PUTRAJAYA_KEY_ALIAS') ?: 'putrajaya'
-            keyPassword System.getenv('PUTRAJAYA_KEY_PASSWORD') ?: 'PutraJayaRelease2026!'
+            storeFile file(System.getenv('PUTRAJAYA_KEYSTORE') ?: 'putrajaya-test-release.jks')
+            storePassword System.getenv('PUTRAJAYA_STORE_PASSWORD') ?: 'PutraJayaTest2026!'
+            keyAlias System.getenv('PUTRAJAYA_KEY_ALIAS') ?: 'putrajaya-test'
+            keyPassword System.getenv('PUTRAJAYA_KEY_PASSWORD') ?: 'PutraJayaTest2026!'
         }
     }
     buildTypes {
