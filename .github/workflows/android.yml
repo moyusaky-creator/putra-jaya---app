@@ -8,58 +8,51 @@ on:
       - "PUTRAJAYA_2_ONLINE.html"
       - ".github/workflows/android.yml"
 
+permissions:
+  contents: read
+
+env:
+  GRADLE_VERSION: "8.10.2"
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Generate Gradle wrapper
         working-directory: android
-        run: gradle wrapper --gradle-version 8.10.2
+        run: gradle wrapper --gradle-version $GRADLE_VERSION --distribution-type bin
 
-      - name: Build Debug APK
+      - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew clean assembleDebug --stacktrace
 
-      - name: Find APK
+      - name: Verify APK
         run: |
-          echo "=== MENCARI APK ==="
-          find android -type f -name "*.apk" -print
-
-      - name: Prepare APK
-        run: |
-          APK=$(find android -type f -name "*.apk" | head -n 1)
-
-          if [ -z "$APK" ]; then
-            echo "ERROR: APK tidak ditemukan!"
-            exit 1
-          fi
-
-          echo "APK ditemukan: $APK"
-
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
           SIZE=$(stat -c%s "$APK")
-          echo "Ukuran APK: $SIZE bytes"
-
-          if [ "$SIZE" -lt 1000000 ]; then
-            echo "ERROR: APK terlalu kecil!"
-            exit 1
-          fi
-
+          echo "APK: $APK"
+          echo "Size: $SIZE bytes"
+          test "$SIZE" -gt 1000000
           cp "$APK" PUTRAJAYA-FINAL.apk
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: PUTRAJAYA-APK-FINAL
