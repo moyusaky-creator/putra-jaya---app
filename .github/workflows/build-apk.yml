@@ -1,8 +1,8 @@
-name: Build Putra Jaya APK
+name: Build Putra Jaya TEST APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ putrajaya-test ]
   workflow_dispatch:
 
 permissions:
@@ -26,31 +26,31 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Create release signing key
+      - name: Create TEST release signing key
         env:
-          STORE_PASSWORD: PutraJayaRelease2026!
-          KEY_PASSWORD: PutraJayaRelease2026!
+          STORE_PASSWORD: PutraJayaTest2026!
+          KEY_PASSWORD: PutraJayaTest2026!
         run: |
           keytool -genkeypair -v \
-            -keystore putrajaya-release.jks \
+            -keystore putrajaya-test-release.jks \
             -storetype PKCS12 \
             -storepass "$STORE_PASSWORD" \
             -keypass "$KEY_PASSWORD" \
-            -alias putrajaya \
+            -alias putrajaya-test \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -dname "CN=Putra Jaya, OU=PutraJaya, O=PutraJaya, L=Indonesia, ST=Jawa Barat, C=ID"
+            -dname "CN=Putra Jaya TEST, OU=PutraJaya, O=PutraJaya, L=Indonesia, ST=Jawa Barat, C=ID"
 
-      - name: Build signed release APK
+      - name: Build signed TEST APK
         env:
-          PUTRAJAYA_KEYSTORE: ${{ github.workspace }}/putrajaya-release.jks
-          PUTRAJAYA_STORE_PASSWORD: PutraJayaRelease2026!
-          PUTRAJAYA_KEY_ALIAS: putrajaya
-          PUTRAJAYA_KEY_PASSWORD: PutraJayaRelease2026!
+          PUTRAJAYA_KEYSTORE: ${{ github.workspace }}/putraja-test-release.jks
+          PUTRAJAYA_STORE_PASSWORD: PutraJayaTest2026!
+          PUTRAJAYA_KEY_ALIAS: putrajaya-test
+          PUTRAJAYA_KEY_PASSWORD: PutraJayaTest2026!
         run: gradle :app:clean :app:assembleRelease --stacktrace
 
-      - name: Verify release APK
+      - name: Verify TEST APK
         run: |
           APK="app/build/outputs/apk/release/app-release.apk"
           test -f "$APK"
@@ -62,11 +62,11 @@ jobs:
           test -n "$SDK_APKSIGNER"
           "$SDK_APKSIGNER" verify --verbose "$APK"
           mkdir -p dist
-          cp "$APK" dist/PUTRAJAYA-2-2026.apk
+          cp "$APK" dist/PUTRAJAYA-TEST-1.0.apk
 
-      - name: Upload installable APK
+      - name: Upload installable TEST APK
         uses: actions/upload-artifact@v4
         with:
-          name: PUTRAJAYA-2-INSTALLABLE
-          path: dist/PUTRAJAYA-2-2026.apk
+          name: PUTRAJAYA-TEST-INSTALLABLE
+          path: dist/PUTRAJAYA-TEST-1.0.apk
           if-no-files-found: error
