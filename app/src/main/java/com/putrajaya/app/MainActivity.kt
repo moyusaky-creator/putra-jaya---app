@@ -11,6 +11,7 @@ import android.webkit.WebViewClient
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,14 +21,20 @@ class MainActivity : Activity() {
         web.settings.databaseEnabled = true
         web.settings.allowFileAccess = true
         web.settings.allowContentAccess = true
+        web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         web.settings.cacheMode = WebSettings.LOAD_DEFAULT
         web.webChromeClient = WebChromeClient()
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
         }
         setContentView(web)
-        web.loadUrl("https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html")
+        // jsDelivr serves .html with an HTML MIME type. raw.githubusercontent.com
+        // may be served as text/plain, which makes Android WebView show the source code.
+        web.loadUrl("https://cdn.jsdelivr.net/gh/moyusaky-creator/putra-jaya---app@main/PUTRAJAYA_2_ONLINE.html")
     }
+
     @Deprecated("Deprecated in Android API 33")
-    override fun onBackPressed() { if (web.canGoBack()) web.goBack() else super.onBackPressed() }
+    override fun onBackPressed() {
+        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+    }
 }
