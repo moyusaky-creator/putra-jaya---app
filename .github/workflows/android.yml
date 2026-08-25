@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'android/**'
-      - 'PUTRAJAYA_2_ONLINE.html'
-      - '.github/workflows/android.yml'
+      - "android/**"
+      - "PUTRAJAYA_2_ONLINE.html"
+      - ".github/workflows/android.yml"
 
 jobs:
   build:
@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -33,12 +33,12 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace
 
-      -       - name: Find APK
+      - name: Find APK
         run: |
-          echo "=== SEMUA FILE APK ==="
-          find android -type f -name "*.apk" -exec ls -lh {} \;
+          echo "=== MENCARI APK ==="
+          find android -type f -name "*.apk" -print
 
-      - name: Verify and prepare APK
+      - name: Prepare APK
         run: |
           APK=$(find android -type f -name "*.apk" | head -n 1)
 
@@ -47,8 +47,7 @@ jobs:
             exit 1
           fi
 
-          echo "APK ditemukan:"
-          echo "$APK"
+          echo "APK ditemukan: $APK"
 
           SIZE=$(stat -c%s "$APK")
           echo "Ukuran APK: $SIZE bytes"
@@ -59,8 +58,6 @@ jobs:
           fi
 
           cp "$APK" PUTRAJAYA-FINAL.apk
-
-          echo "APK siap di-upload."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
