@@ -44,7 +44,7 @@ jobs:
 
       - name: Build signed TEST APK
         env:
-          PUTRAJAYA_KEYSTORE: ${{ github.workspace }}/putraja-test-release.jks
+          PUTRAJAYA_KEYSTORE: ${{ github.workspace }}/putrajaya-test-release.jks
           PUTRAJAYA_STORE_PASSWORD: PutraJayaTest2026!
           PUTRAJAYA_KEY_ALIAS: putrajaya-test
           PUTRAJAYA_KEY_PASSWORD: PutraJayaTest2026!
