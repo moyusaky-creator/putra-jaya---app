@@ -33,33 +33,38 @@ jobs:
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Find APK
+      -       - name: Find APK
         run: |
-          echo "=== APK YANG DIHASILKAN ==="
+          echo "=== SEMUA FILE APK ==="
           find android -type f -name "*.apk" -exec ls -lh {} \;
 
-      - name: Verify APK
+      - name: Verify and prepare APK
         run: |
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APK=$(find android -type f -name "*.apk" | head -n 1)
 
-          if [ ! -f "$APK" ]; then
+          if [ -z "$APK" ]; then
             echo "ERROR: APK tidak ditemukan!"
             exit 1
           fi
+
+          echo "APK ditemukan:"
+          echo "$APK"
 
           SIZE=$(stat -c%s "$APK")
           echo "Ukuran APK: $SIZE bytes"
 
           if [ "$SIZE" -lt 1000000 ]; then
-            echo "ERROR: APK terlalu kecil. Build dihentikan."
+            echo "ERROR: APK terlalu kecil!"
             exit 1
           fi
 
-          echo "APK valid dan siap di-upload."
+          cp "$APK" PUTRAJAYA-FINAL.apk
+
+          echo "APK siap di-upload."
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: PUTRAJAYA-APK-FINAL
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: PUTRAJAYA-FINAL.apk
           if-no-files-found: error
