@@ -1,27 +1,65 @@
 name: Build PUTRAJAYA APK
+
 on:
   workflow_dispatch:
   push:
     paths:
       - 'android/**'
+      - 'PUTRAJAYA_2_ONLINE.html'
+      - '.github/workflows/android.yml'
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Generate Gradle wrapper
         working-directory: android
         run: gradle wrapper --gradle-version 8.10.2
-      - name: Build APK
+
+      - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          echo "=== APK YANG DIHASILKAN ==="
+          find android -type f -name "*.apk" -exec ls -lh {} \;
+
+      - name: Verify APK
+        run: |
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK tidak ditemukan!"
+            exit 1
+          fi
+
+          SIZE=$(stat -c%s "$APK")
+          echo "Ukuran APK: $SIZE bytes"
+
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "ERROR: APK terlalu kecil. Build dihentikan."
+            exit 1
+          fi
+
+          echo "APK valid dan siap di-upload."
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: PUTRAJAYA-APK
+          name: PUTRAJAYA-APK-FINAL
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
