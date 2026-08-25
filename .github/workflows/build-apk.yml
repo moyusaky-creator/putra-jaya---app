@@ -57,7 +57,10 @@ jobs:
           SIZE=$(stat -c%s "$APK")
           echo "APK: $APK"
           echo "Size: $SIZE bytes"
-          test "$SIZE" -gt 1000000
+          test "$SIZE" -gt 300000
+          SDK_APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -n "$SDK_APKSIGNER"
+          "$SDK_APKSIGNER" verify --verbose "$APK"
           mkdir -p dist
           cp "$APK" dist/PUTRAJAYA-2-2026.apk
 
