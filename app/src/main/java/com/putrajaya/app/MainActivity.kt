@@ -11,7 +11,6 @@ import android.webkit.WebViewClient
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
-
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +26,8 @@ class MainActivity : Activity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
         }
         setContentView(web)
-        web.loadUrl("https://moyusaky-creator.github.io/putra-jaya---app/PUTRAJAYA_2_ONLINE.html")
+        web.loadUrl("https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html")
     }
+    @Deprecated("Deprecated in Android API 33")
     override fun onBackPressed() { if (web.canGoBack()) web.goBack() else super.onBackPressed() }
 }
