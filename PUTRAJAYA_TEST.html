@@ -1,15 +1,1 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0d2a52">
-<title>PUTRAJAYA TEST</title>
-<meta http-equiv="refresh" content="0; url=./PUTRAJAYA_2_ONLINE.html">
-</head>
-<body style="font-family:Arial,sans-serif;padding:30px;text-align:center">
-<h2>PUTRAJAYA TEST</h2>
-<p>Membuka versi tes…</p>
-<p><a href="./PUTRAJAYA_2_ONLINE.html">Buka aplikasi</a></p>
-</body>
-</html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d2a52"><title>PUTRAJAYA TEST</title><style>body{font-family:Arial;margin:0;padding:20px}input{display:block;margin:20px 0}img{max-width:100%;height:auto}</style></head><body><h1>PUTRAJAYA TEST</h1><input id="foto" type="file" accept="image/*"><p id="info"></p><img id="preview" alt="Preview"><script>const input=document.getElementById('foto'),preview=document.getElementById('preview'),info=document.getElementById('info');function compressImage(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>{const im=new Image();im.onload=()=>{const max=1200,scale=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*scale));c.height=Math.max(1,Math.round(im.height*scale));c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(b=>b?resolve(b):reject(new Error('Gagal kompres')),'image/webp',.75)};im.onerror=reject;im.src=e.target.result};r.onerror=reject;r.readAsDataURL(file)})}input.onchange=async()=>{const file=input.files?.[0];if(!file)return;info.textContent='Mengompres gambar...';try{const compressed=await compressImage(file);preview.src=URL.createObjectURL(compressed);info.textContent=`Ukuran asli: ${(file.size/1024).toFixed(0)} KB → hasil: ${(compressed.size/1024).toFixed(0)} KB | ${compressed.type}`;const dt=new DataTransfer();dt.items.add(new File([compressed],(file.name.replace(/\.[^.]+$/,'')||'foto')+'.webp',{type:'image/webp'}));input.files=dt.files}catch(e){info.textContent='Gagal mengompres gambar'}};</script></body></html>
