@@ -1,0 +1,93 @@
+name: Add TEST Settings
+
+on:
+  push:
+    branches: [putrajaya-test]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: putrajaya-test
+      - name: Add settings module to TEST
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('docs/index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='PUTRAJAYA_TEST_SETTINGS_V1'
+          if marker in s:
+              print('Settings already installed')
+              raise SystemExit(0)
+          nav='''<button onclick="page('settings');closeMenu()" id="n-settings" class="hidden-by-role">Pengaturan</button>'''
+          anchor='<button onclick="page(\'accounts\');closeMenu()" id="n-accounts">Akun</button>'
+          if anchor not in s:
+              raise SystemExit('navigation anchor not found')
+          s=s.replace(anchor, anchor+'\n'+nav, 1)
+          feature=r'''<style id="PUTRAJAYA_TEST_SETTINGS_V1">
+          .pj-settings-grid{display:grid;gap:10px}.pj-setting-card{background:#fff;border:1px solid #e4e8ee;border-radius:14px;padding:14px}.pj-user-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-bottom:1px solid #eee;padding:10px 0}.pj-user-row:last-child{border-bottom:0}.pj-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0}.pj-switch input{width:20px;height:20px}.pj-perms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.pj-perms label{font-weight:600;font-size:12px;background:#f7f9fb;padding:8px;border-radius:9px}.pj-small{font-size:11px;color:#697386}
+          </style>
+          <script>
+          /* PUTRAJAYA_TEST_SETTINGS_V1 */
+          (()=>{
+            const SETKEY='putrajayaTestSettingsV1';
+            const PERMS={home:'Dashboard',products:'Tambah Barang',sales:'Penjualan',lowstock:'Stok Menipis',in:'Barang Masuk',out:'Barang Keluar',transfer:'Transfer',history:'Riwayat',reports:'Laporan',backup:'Backup',accounts:'Akun',settings:'Pengaturan'};
+            const defaults=()=>({loginEnabled:true,users:{admin:{password:'admin123',role:'admin',name:'Administrator',active:true,permissions:Object.keys(PERMS).reduce((a,k)=>(a[k]=true,a),{})},karyawan:{password:'karyawan123',role:'karyawan',name:'Karyawan',active:true,permissions:{home:true,products:true,sales:true,lowstock:true,in:true,out:true,transfer:true,history:true,reports:false,backup:false,accounts:false,settings:false}}}});
+            function getCfg(){let d=defaults();try{let x=JSON.parse(localStorage.getItem(SETKEY)||'null');if(x){d.loginEnabled=x.loginEnabled!==false;d.users={...d.users,...x.users};for(const k of Object.keys(d.users)){d.users[k]={...defaults().users.karyawan,...d.users[k],permissions:{...defaults().users.karyawan.permissions,...(d.users[k].permissions||{})}};if(d.users[k].role==='admin')d.users[k].permissions=Object.keys(PERMS).reduce((a,p)=>(a[p]=true,a),{});}}}catch(e){}return d}
+            function saveCfg(c){localStorage.setItem(SETKEY,JSON.stringify(c))}
+            function isAdmin(){return window.session&&window.session.role==='admin'}
+            function allowed(k){if(isAdmin())return true;const c=getCfg(),u=c.users[window.session?.username];return !!(u&&u.active!==false&&u.permissions?.[k])}
+            window.pjSettings={get:getCfg,save:saveCfg,allowed};
+            const oldApply=window.applyRole;
+            window.applyRole=function(){if(oldApply)oldApply();const c=getCfg();const admin=isAdmin();Object.keys(PERMS).forEach(k=>{const el=document.getElementById('n-'+k);if(el)el.classList.toggle('hidden-by-role',!admin&&!allowed(k));const b=document.getElementById('b-'+k);if(b)b.classList.toggle('hidden-by-role',!admin&&!allowed(k));});const s=document.getElementById('n-settings');if(s)s.classList.toggle('hidden-by-role',!admin);if(!c.loginEnabled){const o=document.getElementById('loginOverlay');if(o)o.style.display='none';if(!window.session){window.session={username:'admin',role:'admin',name:'Administrator'};sessionStorage.setItem(SESSIONKEY,JSON.stringify(window.session));}}};
+            const oldPage=window.page;
+            window.page=function(x){if(x==='settings'&&!isAdmin()){alert('Menu Pengaturan hanya untuk Admin.');return}if(x!=='settings'&&!allowed(x)){alert('Akses fitur ini dinonaktifkan untuk akun Anda.');return}if(oldPage)oldPage(x)};
+            const oldMovement=window.movement;
+            window.movement=function(x){const k=x==='in'?'in':x==='out'?'out':x==='transfer'?'transfer':x;if(!allowed(k)){alert('Akses fitur ini dinonaktifkan untuk akun Anda.');return}oldMovement(x)};
+            const oldDoLogin=window.doLogin;
+            window.doLogin=async function(e){
+              e.preventDefault();
+              const c=getCfg(),u=(document.getElementById('loginUser')?.value||'').trim().toLowerCase(),pw=document.getElementById('loginPass')?.value||'';
+              const local=c.users[u];
+              if(local){if(local.active===false){const er=document.getElementById('loginError');er.textContent='Akun dinonaktifkan oleh Admin.';er.style.display='block';return false}if(local.password===pw){window.session={username:u,role:local.role,name:local.name};sessionStorage.setItem(SESSIONKEY,JSON.stringify(window.session));document.getElementById('loginOverlay').style.display='none';window.applyRole();window.page('home');return false}}
+              if(oldDoLogin)return oldDoLogin(e);
+              return false;
+            };
+            function esc2(v){return String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
+            window.renderSettings=function(){
+              if(!isAdmin())return;
+              const c=getCfg(), names=Object.keys(c.users);
+              app.innerHTML=`<div class="pj-settings-grid"><div class="card"><h2>⚙️ Pengaturan</h2><div class="pj-small">Pusat pengaturan login, akun, dan hak akses PUTRAJAYA TEST.</div><div class="pj-setting-card" style="margin-top:10px"><div class="pj-switch"><div><b>Login Admin & Karyawan</b><div class="pj-small">Jika OFF, TEST langsung masuk sebagai Admin.</div></div><input id="pjLogin" type="checkbox" ${c.loginEnabled?'checked':''}></div></div></div><div class="pj-setting-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Pengguna</b><button onclick="pjEditUser()">+ Tambah Karyawan</button></div><div id="pjUsers">${names.map(u=>{let a=c.users[u];return `<div class="pj-user-row"><div><b>${esc2(a.name||u)}</b><div class="pj-small">${esc2(u)} · ${a.role==='admin'?'ADMIN':'KARYAWAN'} · ${a.active===false?'Nonaktif':'Aktif'}</div></div><div><button onclick="pjEditUser('${esc2(u)}')">Edit</button></div></div>`}).join('')}</div></div><div class="pj-setting-card"><b>Catatan</b><div class="pj-small" style="margin-top:6px">Pengaturan TEST disimpan di perangkat/browser. Akun juga dicoba disinkronkan ke database online bila tersedia.</div></div></div>`;
+              document.getElementById('pjLogin').onchange=()=>{c.loginEnabled=document.getElementById('pjLogin').checked;saveCfg(c);toast(c.loginEnabled?'Login diaktifkan':'Login dimatikan untuk TEST');if(!c.loginEnabled){window.session={username:'admin',role:'admin',name:'Administrator'};sessionStorage.setItem(SESSIONKEY,JSON.stringify(window.session));document.getElementById('loginOverlay').style.display='none';window.applyRole();window.page('home')}};
+            };
+            window.pjEditUser=function(username=''){
+              if(!isAdmin())return;const c=getCfg(),a=c.users[username]||{password:'',role:'karyawan',name:'',active:true,permissions:{...c.users.karyawan.permissions}};
+              const checks=Object.entries(PERMS).map(([k,v])=>`<label><input type="checkbox" data-pjperm="${k}" ${a.permissions?.[k]?'checked':''}> ${v}</label>`).join('');
+              sheet.innerHTML=`<h2>${username?'Edit':'Tambah'} Pengguna</h2><form id="pjForm"><label>Username</label><input id="pjU" value="${esc2(username)}" ${username?'readonly':''} required><label>Nama</label><input id="pjN" value="${esc2(a.name||'')}" required><label>Password</label><input id="pjP" type="password" value="${esc2(a.password||'')}" required><label>Peran</label><select id="pjR"><option value="karyawan" ${a.role==='karyawan'?'selected':''}>Karyawan</option><option value="admin" ${a.role==='admin'?'selected':''}>Admin</option></select><div class="pj-switch"><b>Akun aktif</b><input id="pjA" type="checkbox" ${a.active!==false?'checked':''}></div><label>Hak akses</label><div class="pj-perms">${checks}</div><div class="actions"><button type="button" onclick="closeM();renderSettings()">Batal</button><button class="success">Simpan</button></div></form>`;
+              modal.classList.add('show');
+              pjForm.onsubmit=async ev=>{ev.preventDefault();const u=pjU.value.trim().toLowerCase();if(!u)return;const role=pjR.value;const perms={};document.querySelectorAll('[data-pjperm]').forEach(x=>perms[x.dataset.pjperm]=x.checked);if(role==='admin')Object.keys(PERMS).forEach(k=>perms[k]=true);c.users[u]={password:pjP.value,name:pjN.value,role,active:pjA.checked,permissions:perms};saveCfg(c);try{if(window.apiUpsert)await apiUpsert('putrajaya_users',[{username:u,password:pjP.value,role,name:pjN.value}])}catch(err){console.warn('Sync user gagal',err)}closeM();renderSettings();toast('Pengguna berhasil disimpan')};
+            };
+            const oldPageInit=window.page;
+            window.addEventListener('load',()=>{window.applyRole();if(window.session&&window.session.role==='admin'){const b=document.getElementById('n-settings');if(b)b.classList.remove('hidden-by-role')}});
+            const oldRenderHome=window.renderHome;
+            const originalPage=oldPageInit;
+            window._pjSettingsInstalled=true;
+          })();
+          </script>'''
+          # Add a small settings route after all original scripts have defined their functions.
+          route=r'''<script>/* PUTRAJAYA_TEST_SETTINGS_ROUTE */(function(){const base=window.page;window.page=function(x){if(x==='settings'){if(window.pjSettings&&window.session&&window.session.role==='admin'){renderSettings();nav('settings')}else alert('Menu Pengaturan hanya untuk Admin.');return}return base(x)};})();</script>'''
+          s=s.replace('</body>',feature+'\n'+route+'\n</body>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/index.html
+          git commit -m 'feat(test): add admin settings and user permissions'
+          git push origin HEAD:putrajaya-test
