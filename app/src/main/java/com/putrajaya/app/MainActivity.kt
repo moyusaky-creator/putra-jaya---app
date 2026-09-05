@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Bundle
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -12,6 +13,10 @@ import java.net.URL
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
+
+    // URL file HTML asli di GitHub raw
+    private val fileUrl =
+        "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html"
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +30,32 @@ class MainActivity : Activity() {
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         web.settings.cacheMode = WebSettings.LOAD_DEFAULT
         web.webChromeClient = WebChromeClient()
-        web.webViewClient = WebViewClient()
+
+        // FIX: WebViewClient custom yang mencegat navigasi ke fileUrl.
+        // Ini penting karena gesture "pull to refresh" bawaan WebView
+        // akan mencoba navigasi LANGSUNG ke fileUrl (historyUrl yang kita
+        // set di loadDataWithBaseURL). Kalau dibiarkan, WebView akan
+        // request sendiri ke GitHub raw — yang server-nya balikin
+        // Content-Type: text/plain, sehingga kode HTML muncul mentah
+        // alih-alih dirender. Dengan intercept ini, setiap kali WebView
+        // mau navigasi ke fileUrl, kita batalkan navigasinya dan panggil
+        // ulang loadAppHtml() (fetch manual + paksa render sebagai HTML).
+        web.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                val requestedUrl = request.url.toString()
+                return if (requestedUrl == fileUrl) {
+                    showLoadingScreen()
+                    loadAppHtml()
+                    true // cegat, jangan biarkan WebView navigasi sendiri
+                } else {
+                    false // biarkan WebView handle URL lain seperti biasa
+                }
+            }
+        }
+
         setContentView(web)
         showLoadingScreen()
         loadAppHtml()
@@ -79,8 +109,6 @@ class MainActivity : Activity() {
     }
 
     private fun loadAppHtml() {
-        // URL file HTML yang sebenarnya (dipakai untuk download konten)
-        val fileUrl = "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html"
         Thread {
             try {
                 val connection = URL(fileUrl).openConnection() as HttpURLConnection
@@ -93,11 +121,6 @@ class MainActivity : Activity() {
                 connection.disconnect()
                 runOnUiThread {
                     web.loadDataWithBaseURL(
-                        // FIX: baseURL sekarang menunjuk LANGSUNG ke file HTML-nya,
-                        // sama seperti fileUrl di atas. Ini penting karena WebView
-                        // memakai baseURL ini saat auto-reload (misalnya saat
-                        // gesture "pull to refresh"). Kalau baseURL cuma folder
-                        // (".../main/") tanpa nama file, GitHub raw balikin 404.
                         fileUrl,
                         html,
                         "text/html",
