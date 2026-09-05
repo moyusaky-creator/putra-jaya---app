@@ -79,10 +79,11 @@ class MainActivity : Activity() {
     }
 
     private fun loadAppHtml() {
-        val url = "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html"
+        // URL file HTML yang sebenarnya (dipakai untuk download konten)
+        val fileUrl = "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html"
         Thread {
             try {
-                val connection = URL(url).openConnection() as HttpURLConnection
+                val connection = URL(fileUrl).openConnection() as HttpURLConnection
                 connection.connectTimeout = 15000
                 connection.readTimeout = 20000
                 connection.requestMethod = "GET"
@@ -92,11 +93,16 @@ class MainActivity : Activity() {
                 connection.disconnect()
                 runOnUiThread {
                     web.loadDataWithBaseURL(
-                        "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/",
+                        // FIX: baseURL sekarang menunjuk LANGSUNG ke file HTML-nya,
+                        // sama seperti fileUrl di atas. Ini penting karena WebView
+                        // memakai baseURL ini saat auto-reload (misalnya saat
+                        // gesture "pull to refresh"). Kalau baseURL cuma folder
+                        // (".../main/") tanpa nama file, GitHub raw balikin 404.
+                        fileUrl,
                         html,
                         "text/html",
                         "UTF-8",
-                        "https://github.com/moyusaky-creator/putra-jaya---app"
+                        fileUrl
                     )
                 }
             } catch (e: Exception) {
