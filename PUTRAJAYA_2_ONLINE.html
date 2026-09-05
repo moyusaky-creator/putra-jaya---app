@@ -3780,38 +3780,23 @@ if(!LOGIN_ENABLED){
   window.postponeAppUpdate=function(){
     var el=document.getElementById('updateOverlay');
     if(el)el.classList.remove('show');
-    // Akan ditanyakan kembali saat aplikasi dibuka ulang, atau di pengecekan berikutnya.
   };
   window.applyAppUpdate=function(){
-    if(waitingWorker){waitingWorker.postMessage({type:'SKIP_WAITING'});}
     var el=document.getElementById('updateOverlay');
     if(el)el.classList.remove('show');
-    toast('Memperbarui aplikasi...');
   };
-  if('serviceWorker' in navigator){
-    window.addEventListener('load',function(){
-      navigator.serviceWorker.register('./sw.js').then(function(reg){
-        if(reg.waiting && navigator.serviceWorker.controller){showUpdatePrompt(reg);}
-        reg.addEventListener('updatefound',function(){
-          var nw=reg.installing;
-          if(!nw)return;
-          nw.addEventListener('statechange',function(){
-            if(nw.state==='installed' && navigator.serviceWorker.controller){
-              showUpdatePrompt(reg);
-            }
-          });
-        });
-        // Cek pembaruan tiap kali aplikasi dibuka, lalu berkala setiap 30 menit.
-        reg.update().catch(function(){});
-        setInterval(function(){reg.update().catch(function(){})},30*60*1000);
-      }).catch(function(){});
-      var refreshedOnce=false;
-      navigator.serviceWorker.addEventListener('controllerchange',function(){
-        if(refreshedOnce)return;
-        refreshedOnce=true;
-        window.location.reload();
-      });
-    });
+  // CATATAN: Pendaftaran Service Worker (./sw.js) DIMATIKAN dengan sengaja.
+  // Aplikasi ini dibungkus sebagai APK Android yang sudah menangani pengambilan
+  // & tampilan HTML-nya sendiri lewat WebView, jadi Service Worker tidak diperlukan.
+  // Service Worker versi lama yang tersimpan di beberapa HP menunjuk ke nama file
+  // HTML lama (PUTRAJAYA2_v79.html) sehingga menyebabkan halaman "404: Not Found"
+  // saat aplikasi di-refresh/reload. Jika sebelumnya sempat ada Service Worker aktif
+  // dari versi lama, ia akan otomatis berhenti mengontrol halaman ini (tidak didaftarkan
+  // ulang) dan tidak akan mengganggu reload berikutnya.
+  if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(r){ r.unregister().catch(function(){}); });
+    }).catch(function(){});
   }
 })();
 </script>
