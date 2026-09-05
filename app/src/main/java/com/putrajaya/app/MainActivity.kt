@@ -1,13 +1,24 @@
 package com.putrajaya.app
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
+import android.webkit.JavascriptInterface
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -17,6 +28,12 @@ class MainActivity : Activity() {
     // URL file HTML asli di GitHub raw
     private val fileUrl =
         "https://raw.githubusercontent.com/moyusaky-creator/putra-jaya---app/main/PUTRAJAYA_2_ONLINE.html"
+
+    // --- Untuk upload foto (kamera / galeri) ---
+    private var fileUploadCallback: ValueCallback<Array<Uri>>? = null
+    private var cameraPhotoUri: Uri? = null
+    private val FILE_CHOOSER_REQUEST_CODE = 5173
+    private val CAMERA_PERMISSION_REQUEST_CODE = 5174
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,17 +46,25 @@ class MainActivity : Activity() {
         web.settings.allowContentAccess = true
         web.settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         web.settings.cacheMode = WebSettings.LOAD_DEFAULT
-        web.webChromeClient = WebChromeClient()
 
-        // FIX: WebViewClient custom yang mencegat navigasi ke fileUrl.
-        // Ini penting karena gesture "pull to refresh" bawaan WebView
-        // akan mencoba navigasi LANGSUNG ke fileUrl (historyUrl yang kita
-        // set di loadDataWithBaseURL). Kalau dibiarkan, WebView akan
-        // request sendiri ke GitHub raw — yang server-nya balikin
-        // Content-Type: text/plain, sehingga kode HTML muncul mentah
-        // alih-alih dirender. Dengan intercept ini, setiap kali WebView
-        // mau navigasi ke fileUrl, kita batalkan navigasinya dan panggil
-        // ulang loadAppHtml() (fetch manual + paksa render sebagai HTML).
+        // FIX: WebChromeClient custom supaya tombol upload (<input type="file">)
+        // di halaman HTML bisa munculin pilihan "Kamera" / "Galeri".
+        // Tanpa onShowFileChooser ini, tombol upload tidak akan merespons sama sekali.
+        web.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView,
+                filePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: FileChooserParams
+            ): Boolean {
+                fileUploadCallback?.onReceiveValue(null)
+                fileUploadCallback = filePathCallback
+                openFileChooser()
+                return true
+            }
+        }
+
+        // WebViewClient custom: mencegat navigasi ke fileUrl saat pull-to-refresh
+        // (supaya tidak load mentah dari GitHub raw dengan Content-Type: text/plain)
         web.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView,
@@ -49,9 +74,9 @@ class MainActivity : Activity() {
                 return if (requestedUrl == fileUrl) {
                     showLoadingScreen()
                     loadAppHtml()
-                    true // cegat, jangan biarkan WebView navigasi sendiri
+                    true
                 } else {
-                    false // biarkan WebView handle URL lain seperti biasa
+                    false
                 }
             }
         }
@@ -60,6 +85,95 @@ class MainActivity : Activity() {
         showLoadingScreen()
         loadAppHtml()
     }
+
+    // ---------- Bagian upload foto (kamera / galeri) ----------
+
+    private fun openFileChooser() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA),
+                CAMERA_PERMISSION_REQUEST_CODE
+            )
+            // Lanjut tetap buka chooser; kalau izin kamera ditolak,
+            // pengguna masih bisa pilih dari Galeri.
+        }
+        launchChooserIntent()
+    }
+
+    private fun launchChooserIntent() {
+        // Intent buat ambil foto lewat kamera
+        var cameraIntent: Intent? = null
+        try {
+            val photoFile = File.createTempFile(
+                "PUTRAJAYA_${System.currentTimeMillis()}_",
+                ".jpg",
+                cacheDir
+            )
+            cameraPhotoUri = FileProvider.getUriForFile(
+                this,
+                "$packageName.fileprovider",
+                photoFile
+            )
+            cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+        } catch (e: Exception) {
+            cameraPhotoUri = null
+        }
+
+        // Intent buat pilih dari Galeri
+        val galleryIntent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+
+        val chooserIntent = Intent(Intent.ACTION_CHOOSER).apply {
+            putExtra(Intent.EXTRA_INTENT, galleryIntent)
+            putExtra(Intent.EXTRA_TITLE, "Ambil foto atau pilih dari galeri")
+            if (cameraIntent != null) {
+                putExtra(Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
+            }
+        }
+
+        startActivityForResult(chooserIntent, FILE_CHOOSER_REQUEST_CODE)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        // Tidak perlu aksi khusus di sini — hasil izin akan dipakai
+        // otomatis saat pengguna memilih opsi "Kamera" di chooser.
+    }
+
+    @Deprecated("Deprecated in Android API 30")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != FILE_CHOOSER_REQUEST_CODE) return
+        if (fileUploadCallback == null) return
+
+        var results: Array<Uri>? = null
+        if (resultCode == Activity.RESULT_OK) {
+            if (data != null && data.dataString != null) {
+                // Dipilih dari Galeri
+                results = arrayOf(Uri.parse(data.dataString))
+            } else if (cameraPhotoUri != null) {
+                // Difoto lewat Kamera
+                results = arrayOf(cameraPhotoUri!!)
+            }
+        }
+        fileUploadCallback?.onReceiveValue(results)
+        fileUploadCallback = null
+        cameraPhotoUri = null
+    }
+
+    // ---------- Bagian load HTML (sudah ada sebelumnya) ----------
 
     private fun showLoadingScreen() {
         web.loadDataWithBaseURL(
@@ -189,7 +303,7 @@ class MainActivity : Activity() {
                         null
                     )
                     web.addJavascriptInterface(object {
-                        @android.webkit.JavascriptInterface
+                        @JavascriptInterface
                         fun retry() {
                             runOnUiThread {
                                 showLoadingScreen()
