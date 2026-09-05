@@ -1,1 +1,60 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:theme="@style/AppTheme" android:label="PUTRAJAYA 2" android:usesCleartextTraffic="false"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+<!--
+  ================================================================
+  INI BUKAN FILE PENGGANTI — INI CUMA CONTOH BAGIAN YANG PERLU
+  DITAMBAHKAN ke file AndroidManifest.xml kamu yang sudah ada.
+  Lokasi file asli: app/src/main/AndroidManifest.xml
+  ================================================================
+-->
+
+<!-- 1) Tambahkan baris ini SEBELUM tag <application ...> -->
+<!--    (sejajar dengan tag <uses-permission> lain kalau sudah ada) -->
+
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera" android:required="false" />
+
+
+<!-- 2) Tambahkan blok <provider> ini DI DALAM tag <application> ... </application>,
+        di antara komponen lain seperti <activity> -->
+
+<provider
+    android:name="androidx.core.content.FileProvider"
+    android:authorities="${applicationId}.fileprovider"
+    android:exported="false"
+    android:grantUriPermissions="true">
+    <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+</provider>
+
+
+<!--
+  ================================================================
+  CONTOH STRUKTUR LENGKAP (supaya kebayang taruh di mana):
+
+  <?xml version="1.0" encoding="utf-8"?>
+  <manifest ...>
+
+      <uses-permission android:name="android.permission.CAMERA" />
+      <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+      <application ...>
+
+          <activity android:name=".MainActivity" ...>
+              ...
+          </activity>
+
+          <provider
+              android:name="androidx.core.content.FileProvider"
+              android:authorities="${applicationId}.fileprovider"
+              android:exported="false"
+              android:grantUriPermissions="true">
+              <meta-data
+                  android:name="android.support.FILE_PROVIDER_PATHS"
+                  android:resource="@xml/file_paths" />
+          </provider>
+
+      </application>
+  </manifest>
+  ================================================================
+-->
